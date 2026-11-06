@@ -1,0 +1,3 @@
+Coloca aquí tus PDF, Excel, Word, imágenes, etc.
+El nombre debe coincidir con la ruta que pusiste en js/datos.js
+(por ejemplo: archivos/ley-federal-del-trabajo.pdf).
