@@ -24,7 +24,37 @@ const UNIDADES = {
 };
 
 const opcionesDe = (cat) => Object.keys(UNIDADES[cat]).map(u => [u, u]);
+/* Área con aislamiento por calibre AWG/kcmil, cable THHN/THWN-2 (pulg²).
+   Verifica contra la tabla de tu norma. Puedes agregar o corregir filas. */
+const AWG_THHN = [
+  ["14", 0.0097], ["12", 0.0133], ["10", 0.0211], ["8", 0.0366],
+  ["6", 0.0507], ["4", 0.0824], ["3", 0.0973], ["2", 0.1158],
+  ["1", 0.1562], ["1/0", 0.1855], ["2/0", 0.2223], ["3/0", 0.2679],
+  ["4/0", 0.3237], ["250 kcmil", 0.3970], ["300 kcmil", 0.4608],
+  ["350 kcmil", 0.5242], ["400 kcmil", 0.5863], ["500 kcmil", 0.7073]
+];
 
+/* Área interior del tubo EMT por medida comercial en pulgadas (pulg²). */
+const TUBO_EMT = [
+  ["1/2", 0.304], ["3/4", 0.533], ["1", 0.864], ["1 1/4", 1.496],
+  ["1 1/2", 2.036], ["2", 3.356], ["2 1/2", 5.858], ["3", 8.846],
+  ["3 1/2", 11.545], ["4", 14.753]
+];/* Área con aislamiento por calibre AWG/kcmil, cable THHN/THWN-2 (pulg²).
+   Verifica contra la tabla de tu norma. Puedes agregar o corregir filas. */
+const AWG_THHN = [
+  ["14", 0.0097], ["12", 0.0133], ["10", 0.0211], ["8", 0.0366],
+  ["6", 0.0507], ["4", 0.0824], ["3", 0.0973], ["2", 0.1158],
+  ["1", 0.1562], ["1/0", 0.1855], ["2/0", 0.2223], ["3/0", 0.2679],
+  ["4/0", 0.3237], ["250 kcmil", 0.3970], ["300 kcmil", 0.4608],
+  ["350 kcmil", 0.5242], ["400 kcmil", 0.5863], ["500 kcmil", 0.7073]
+];
+
+/* Área interior del tubo EMT por medida comercial en pulgadas (pulg²). */
+const TUBO_EMT = [
+  ["1/2", 0.304], ["3/4", 0.533], ["1", 0.864], ["1 1/4", 1.496],
+  ["1 1/2", 2.036], ["2", 3.356], ["2 1/2", 5.858], ["3", 8.846],
+  ["3 1/2", 11.545], ["4", 14.753]
+];
 const CALCS = {
 
   "calc-unidades": {
@@ -161,17 +191,32 @@ const CALCS = {
   },
 
   "calc-cables": {
-    titulo: "No. de cables por ducto",
-    nota: "Porcentajes máximos de ocupación usuales: 53 % (1 cable), 31 % (2 cables), 40 % (3 o más). Verifica con tu norma vigente.",
+    titulo: "No. de cables por ducto (AWG y pulgadas)",
+    nota: "Ocupación máxima usual: 53 % (1 cable), 31 % (2 cables), 40 % (3 o más). Áreas de cable para THHN/THWN-2 y tubo EMT. Con otro tipo de cable o de tubo (PVC, pared gruesa), elige “Otro” y captura las medidas. Verifica con tu norma vigente.",
     campos: [
-      { id: "dd", label: "Diámetro interior del ducto (mm)", def: 27.8 },
-      { id: "dc", label: "Diámetro exterior del cable (mm)", def: 6.5 }
+      { id: "tubo", label: "Tubo (medida comercial, pulg)", tipo: "sel", def: "3/4",
+        opciones: () => TUBO_EMT.map(t => [t[0], t[0] + '" EMT']).concat([["otro", "Otro (capturar diámetro interior)"]]) },
+      { id: "di", label: "Diámetro interior del tubo (pulg)", def: 0.824, si: v => v.tubo === "otro" },
+      { id: "awg", label: "Calibre del cable (AWG)", tipo: "sel", def: "12",
+        opciones: () => AWG_THHN.map(a => [a[0], isNaN(a[0]) ? a[0] : a[0] + " AWG"]).concat([["otro", "Otro (capturar diámetro exterior)"]]) },
+      { id: "dc", label: "Diámetro exterior del cable (pulg)", def: 0.15, si: v => v.awg === "otro" },
+      { id: "n", label: "Cables que quieres meter", def: 6 }
     ],
     calcular: v => {
-      const Ad = Math.PI * v.dd ** 2 / 4, Ac = Math.PI * v.dc ** 2 / 4;
-      return [["Máx. con 40 % de ocupación (3 o más)", Math.floor(0.40 * Ad / Ac), "cables"],
-              ["Máx. con 31 % de ocupación (2)", Math.floor(0.31 * Ad / Ac), "cables"],
-              ["Máx. con 53 % de ocupación (1)", Math.floor(0.53 * Ad / Ac), "cables"]];
+      const Ad = v.tubo === "otro" ? Math.PI * v.di ** 2 / 4 : TUBO_EMT.find(t => t[0] === v.tubo)[1];
+      const Ac = v.awg === "otro" ? Math.PI * v.dc ** 2 / 4 : AWG_THHN.find(a => a[0] === v.awg)[1];
+      const lim = v.n === 1 ? 53 : v.n === 2 ? 31 : 40;
+      const ocup = v.n * Ac / Ad * 100;
+      return [
+        ["Área interior del tubo", Ad, "pulg²"],
+        ["Área de un cable", Ac, "pulg²"],
+        ["Máx. cables con 40 % (3 o más)", Math.floor(0.40 * Ad / Ac), "cables"],
+        ["Máx. cables con 31 % (2)", Math.floor(0.31 * Ad / Ac), "cables"],
+        ["Máx. cables con 53 % (1)", Math.floor(0.53 * Ad / Ac), "cables"],
+        ["Ocupación con " + v.n + " cables", ocup, "%"],
+        ["Límite permitido", lim, "%"],
+        ["¿Cumple?", ocup <= lim ? "Sí" : "No", ""]
+      ];
     }
   },
 
