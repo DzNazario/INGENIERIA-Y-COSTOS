@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ingeniería Técnica y Costos</title>
+  <meta name="theme-color" content="#0b2545">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icono.svg">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <header class="barra">
+    <a class="marca" href="#/" aria-label="Inicio">
+      <img src="icono.svg" alt="" width="32" height="32">
+      <span>Ingeniería Técnica y Costos</span>
+    </a>
+    <input id="buscar" type="search" placeholder="Buscar tabla, calculadora o manual…" autocomplete="off">
+  </header>
+  <nav id="pestanas" aria-label="Secciones"></nav>
+  <main id="app"></main>
+
+  <!-- Todo se carga como scripts normales (sin módulos) para que también funcione abriendo index.html directo desde el teléfono o la PC -->
+  <script src="js/datos.js"></script>
+  <script src="js/calculadoras.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+  </script>
+</body>
+</html>
